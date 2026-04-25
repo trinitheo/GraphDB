@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "node dist/server.cjs",
-    "build": "vite build",
+    "build": "vite build && npx esbuild server.ts --bundle --platform=node --packages=external --outfile=dist/server.cjs --format=cjs",
     "preview": "vite preview"
   },
   "dependencies": {
