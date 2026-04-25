@@ -1,0 +1,7 @@
+{
+  "name": "GraphDB BrainCarePlus-Mini App Version 3",
+  "description": "A container application designed to load and manage various mini-apps. This shell provides a unified layout, navigation, and routing, allowing different standalone applications to run within a single, cohesive ecosystem. ",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

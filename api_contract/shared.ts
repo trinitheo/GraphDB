@@ -1,0 +1,1 @@
+export type UserRole = 'Clinician' | 'Nurse' | 'Practice Manager' | 'AlliedHealthProfessional' | 'Patient' | 'Owner' | 'Billing Specialist';

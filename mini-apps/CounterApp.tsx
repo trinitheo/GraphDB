@@ -1,0 +1,1 @@
+// This file has been moved to the 'deprecated' folder and can be safely removed from this location.
