@@ -9,6 +9,7 @@ import PatientInformation from './PatientInformation';
 import PatientNav from './PatientNav';
 // FIX: Corrected import path.
 import { MedicalRecordsView } from '../../../MedicalRecordsMFE';
+import type { OrderType } from '../../../TestOrderingMFE/types';
 // FIX: Corrected import path.
 import { MedicationsView, PrescriptionPadModal } from '../../../MedicationsMFE';
 // FIX: Corrected import path.
@@ -116,14 +117,22 @@ const usePatientDetails = (patientId?: string) => {
 const useModals = () => {
   const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
+  const [initialOrderType, setInitialOrderType] = useState<OrderType | null>(null);
 
   return {
     isPrescriptionModalOpen,
     isNewOrderModalOpen,
+    initialOrderType,
     openPrescriptionModal: () => setIsPrescriptionModalOpen(true),
     closePrescriptionModal: () => setIsPrescriptionModalOpen(false),
-    openNewOrderModal: () => setIsNewOrderModalOpen(true),
-    closeNewOrderModal: () => setIsNewOrderModalOpen(false),
+    openNewOrderModal: (type?: OrderType) => {
+      setInitialOrderType(type || null);
+      setIsNewOrderModalOpen(true);
+    },
+    closeNewOrderModal: () => {
+      setIsNewOrderModalOpen(false);
+      setInitialOrderType(null);
+    },
   };
 };
 
@@ -408,6 +417,7 @@ const PatientDetailView: React.FC = () => {
         onClose={closeNewOrderModal}
         onSave={handleSaveOrder}
         patient={patient}
+        initialType={initialOrderType}
       />
     </div>
   );

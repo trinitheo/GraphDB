@@ -5,6 +5,7 @@ import type { Patient, MedicalRecordEntry, Vitals } from './types';
 import type { Api } from '../../api_contract/patient';
 import { AISummaryGenerator } from '../AIFeaturesMFE';
 import PatientNoteColumn from './components/medical/PatientNoteColumn';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
     MedicationIcon, 
     Stethoscope, 
@@ -16,8 +17,12 @@ import {
     MoreHorizontalIcon, 
     AlertTriangle,
     XIcon,
-    WrenchIcon
+    WrenchIcon,
+    ImagingStudyIcon,
+    SpecialTestIcon,
+    LabTestIcon
 } from '../../components/icons';
+import type { OrderType } from '../TestOrderingMFE/types';
 import PatientVitalsCard from './components/detail/PatientVitalsCard';
 import CurrentMedicationsCard from './components/detail/CurrentMedicationsCard';
 import FollowUpNoteModal from './components/modals/FollowUpNoteModal';
@@ -53,15 +58,32 @@ const ErrorDisplay: React.FC<{ message: string; onRetry?: () => void }> = ({ mes
 );
 
 // Copied from ClinicianDashboard for consistency
-const QuickActionVertical: React.FC<{ icon: any, label: string, onClick: () => void, colorClass: string }> = ({ icon: Icon, label, onClick, colorClass }) => (
-    <button 
+const QuickActionVertical: React.FC<{ 
+    icon: any, 
+    label: string, 
+    onClick: () => void, 
+    colorClass: string,
+    innerDivStyle?: React.CSSProperties 
+}> = ({ icon: Icon, label, onClick, colorClass, innerDivStyle }) => (
+    <motion.button 
         onClick={onClick}
-        className={`w-24 lg:w-full aspect-square glass-btn rounded-2xl flex flex-col items-center justify-center gap-2 lg:gap-3 group relative overflow-hidden flex-shrink-0`}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className={`w-24 lg:w-full aspect-square glass-btn rounded-2xl flex flex-col items-center justify-center gap-2 lg:gap-3 group relative overflow-hidden flex-shrink-0 shadow-sm hover:shadow-xl transition-shadow duration-300`}
     >
-        <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity ${colorClass}`}></div>
-        <Icon className={`w-8 h-8 text-slate-600 group-hover:scale-110 transition-transform duration-300`} />
-        <span className="text-xs font-bold text-slate-700 text-center px-1 leading-tight">{label}</span>
-    </button>
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileHover={{ opacity: 1, scale: 1 }}
+            className={`absolute transition-all duration-500 rounded-full blur-2xl ${colorClass}`}
+            style={innerDivStyle || { inset: 0, opacity: 0.1, borderRadius: 'inherit' }}
+        />
+        <div className="relative z-10 flex flex-col items-center gap-2 lg:gap-3">
+            <Icon className={`w-8 h-8 text-slate-600 group-hover:scale-110 group-hover:text-slate-900 transition-all duration-300`} />
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center px-1 leading-tight group-hover:text-slate-900 transition-colors">
+                {label}
+            </span>
+        </div>
+    </motion.button>
 );
 
 type LogFilterType = 'All' | 'Notes' | 'Prescriptions' | 'Labs' | 'Procedures' | 'Referrals';
@@ -100,7 +122,7 @@ interface MedicalRecordsViewProps {
     onAddPrescriptionClick?: () => void;
     onRecordUpdate: () => void;
     onNavigateToMedications?: () => void;
-    onPlaceNewOrderClick?: () => void;
+    onPlaceNewOrderClick?: (type?: OrderType) => void;
 }
 
 export const MedicalRecordsView: React.FC<MedicalRecordsViewProps> = ({ patient, records, isLoading, error, onAddPrescriptionClick, onRecordUpdate, onNavigateToMedications, onPlaceNewOrderClick }) => {
@@ -203,56 +225,48 @@ export const MedicalRecordsView: React.FC<MedicalRecordsViewProps> = ({ patient,
         navigate('/'); 
     };
 
-    const ToolsList = () => (
-        <>
-            {canWriteNote && (
-                <QuickActionVertical 
-                    icon={FileText} 
-                    label="Note" 
-                    onClick={() => setIsFollowUpModalOpen(true)} 
-                    colorClass="bg-blue-500" 
-                />
-            )}
-            {canPrescribe && (
-                <QuickActionVertical 
-                    icon={MedicationIcon} 
-                    label="Rx" 
-                    onClick={onAddPrescriptionClick!} 
-                    colorClass="bg-green-500" 
-                />
-            )}
-            {canOrder && (
-                <QuickActionVertical 
-                    icon={TestsIcon} 
-                    label="Labs" 
-                    onClick={onPlaceNewOrderClick!} 
-                    colorClass="bg-cyan-500" 
-                />
-            )}
-            {canCreateReferral && (
-                <QuickActionVertical 
-                    icon={Send} 
-                    label="Referral" 
-                    onClick={() => setIsReferralModalOpen(true)} 
-                    colorClass="bg-purple-500" 
-                />
-            )}
-            {canLogProcedure && (
-                <QuickActionVertical 
-                    icon={Stethoscope} 
-                    label="Procedure" 
-                    onClick={() => setIsProcedureModalOpen(true)} 
-                    colorClass="bg-orange-500" 
-                />
-            )}
-            <QuickActionVertical 
-                icon={Sparkles} 
-                label="AI Summary" 
-                onClick={() => setIsSummaryModalOpen(true)} 
-                colorClass="bg-indigo-500" 
-            />
-        </>
-    );
+    const ToolsList = ({ isSidebar }: { isSidebar?: boolean }) => {
+        const actions = [
+            { condition: canWriteNote, icon: FileText, label: "Note", onClick: () => setIsFollowUpModalOpen(true), color: "bg-blue-500" },
+            { condition: canPrescribe, icon: MedicationIcon, label: "Rx", onClick: onAddPrescriptionClick!, color: "bg-green-500" },
+            { condition: canOrder, icon: LabTestIcon, label: "Labs", onClick: () => onPlaceNewOrderClick?.('Lab'), color: "bg-cyan-500" },
+            { condition: canOrder, icon: ImagingStudyIcon, label: "Imaging", onClick: () => onPlaceNewOrderClick?.('Imaging'), color: "bg-rose-500" },
+            { condition: canOrder, icon: SpecialTestIcon, label: "Specialty", onClick: () => onPlaceNewOrderClick?.('SpecialTest'), color: "bg-amber-500" },
+            { condition: canCreateReferral, icon: Send, label: "Referral", onClick: () => setIsReferralModalOpen(true), color: "bg-purple-500" },
+            { condition: canLogProcedure, icon: Stethoscope, label: "Procedure", onClick: () => setIsProcedureModalOpen(true), color: "bg-orange-500" },
+            { condition: true, icon: Sparkles, label: "AI Summary", onClick: () => setIsSummaryModalOpen(true), color: "bg-indigo-500" }
+        ].filter(a => a.condition);
+
+        return (
+            <>
+                {actions.map((action, idx) => (
+                    <motion.div
+                        key={action.label}
+                        initial={isSidebar ? { opacity: 0, x: 20 } : { opacity: 0, y: 20 }}
+                        animate={isSidebar ? { opacity: 1, x: 0 } : { opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="w-full"
+                    >
+                        <QuickActionVertical 
+                            icon={action.icon}
+                            label={action.label}
+                            onClick={action.onClick}
+                            colorClass={action.color}
+                            innerDivStyle={isSidebar ? { 
+                                height: '70px', 
+                                width: '70px', 
+                                top: '50%', 
+                                left: '50%', 
+                                transform: 'translate(-50%, -50%)', 
+                                position: 'absolute',
+                                opacity: 0.15
+                            } : undefined}
+                        />
+                    </motion.div>
+                ))}
+            </>
+        );
+    };
     
     return (
         <div className="flex flex-col lg:flex-row gap-6 lg:h-full lg:overflow-hidden">
@@ -307,7 +321,7 @@ export const MedicalRecordsView: React.FC<MedicalRecordsViewProps> = ({ patient,
             <section className="hidden lg:flex w-[110px] flex-col gap-4 h-full flex-shrink-0">
                 <div className="glass-panel-heavy h-full flex flex-col items-center py-4 px-2 gap-3 overflow-y-auto custom-scrollbar">
                     <div className="mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest rotate-180 py-2" style={{writingMode: 'vertical-rl'}}>Actions</div>
-                    <ToolsList />
+                    <ToolsList isSidebar />
                 </div>
             </section>
 
@@ -333,27 +347,43 @@ export const MedicalRecordsView: React.FC<MedicalRecordsViewProps> = ({ patient,
                     </button>
 
                     {/* MOBILE TOOLS MENU OVERLAY */}
-                    {isToolsMenuOpen && (
-                        <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsToolsMenuOpen(false)}></div>
-                            
-                            <div className="relative bg-white/90 backdrop-blur-md w-full sm:w-auto sm:min-w-[320px] rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl animate-slide-up sm:animate-fade-in">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                        <WrenchIcon className="w-5 h-5 text-slate-500" />
-                                        Clinical Actions
-                                    </h3>
-                                    <button onClick={() => setIsToolsMenuOpen(false)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
-                                        <XIcon className="w-5 h-5 text-slate-600" />
-                                    </button>
-                                </div>
+                    <AnimatePresence>
+                        {isToolsMenuOpen && (
+                            <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+                                <motion.div 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+                                    onClick={() => setIsToolsMenuOpen(false)}
+                                />
                                 
-                                <div className="grid grid-cols-3 gap-4">
-                                    <ToolsList />
-                                </div>
+                                <motion.div 
+                                    initial={{ y: '100%' }}
+                                    animate={{ y: 0 }}
+                                    exit={{ y: '100%' }}
+                                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                    className="relative bg-white/90 backdrop-blur-md w-full sm:w-auto sm:min-w-[360px] rounded-t-3xl sm:rounded-3xl p-8 shadow-2xl"
+                                >
+                                    <div className="flex justify-between items-center mb-8">
+                                        <div className="flex flex-col">
+                                            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">
+                                                Clinical Actions
+                                            </h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Patient Workspace • Mobile</p>
+                                        </div>
+                                        <button onClick={() => setIsToolsMenuOpen(false)} className="p-3 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                                            <XIcon className="w-5 h-5 text-slate-600" />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-3 gap-6">
+                                        <ToolsList />
+                                    </div>
+                                </motion.div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </AnimatePresence>
 
                     {/* --- Modals --- */}
                     {user && (

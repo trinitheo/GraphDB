@@ -11,10 +11,18 @@ interface NewOrderModalProps {
     onClose: () => void;
     onSave: (orderData: Omit<Order, 'id' | 'patientId' | 'orderDate' | 'status' | 'orderingPhysician'>) => Promise<void>;
     patient: Patient;
+    initialType?: OrderType | null;
 }
 
-export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSave, patient }) => {
-    const [orderType, setOrderType] = useState<OrderType | null>(null);
+export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSave, patient, initialType = null }) => {
+    const [orderType, setOrderType] = React.useState<OrderType | null>(initialType);
+
+    // Sync state if initialType changes while modal is open (rare but good for consistency)
+    React.useEffect(() => {
+        if (isOpen) {
+            setOrderType(initialType);
+        }
+    }, [isOpen, initialType]);
 
     const handleSelectType = (type: OrderType) => {
         setOrderType(type);
